@@ -6,21 +6,22 @@ tukey_q3_percentile = 0.75
 tukey_iqr_multiplier = 1.5
 gdp_column = "GDP_per_capita_PPP"
 
-# Loading csv files
+
+# loading csv files
 df_gdp = pd.read_csv("gdp_per_capita_2021.csv", na_values=["None"])
 df_pop = pd.read_csv("population_2021.csv", na_values=["None"])
 
 """
 removing "the" from country names and normalizing them to a certain format
 "   The netherlands " -> "Netherlands"
-returning the corrected dataframe
+returning the corrected dataframe along with the names that have been corrected
 """
 def normalize_country_names(df):
-    df["Country"] = (df["Country"].
-                     str.replace("^the ", "", case=False, regex=True).
-                     str.title().
-                     str.strip())
-    return df
+    original = df["Country"].copy()
+    df["Country"] = df["Country"].str.replace("^the ", "", case=False, regex=True).str.title().str.strip()
+    mismatches = pd.DataFrame({"Original": original, "Corrected": df["Country"]})
+    mismatches = mismatches[mismatches["Original"] != mismatches["Corrected"]]
+    return df, mismatches
 
 """
 Cleaning the GDP df
@@ -56,19 +57,19 @@ def clean_gdp(df_gdp):
     upper = q3 + tukey_iqr_multiplier * iqr
     outliers = df_gdp[(df_gdp[gdp_column] < lower) | (df_gdp[gdp_column] > upper)]
     # TODO We should write this output in our report
-    print(f"___________GDP outliers:___________\n {outliers}")
+    print(f"___________GDP outliers:___________\n{outliers}")
 
     # d)
     # TODO We should document in the report our decision process here, go figure
     df_gdp = df_gdp.drop_duplicates(subset="Country", keep="first")
 
     # e)
-    df_gdp = normalize_country_names(df_gdp)
+    df_gdp, mismatches_gdp = normalize_country_names(df_gdp)
 
     # f)
     df_gdp = df_gdp.set_index("Country")
 
-    return df_gdp
+    return df_gdp, mismatches_gdp
 
 """
 Cleaning the Population df
@@ -98,27 +99,31 @@ def clean_pop(df_pop):
     # c)
     df_pop["LogPopulation"] = np.log10(df_pop["Population"])
     q1 = df_pop["LogPopulation"].quantile(tukey_q1_percentile)
-    q3 = df_pop["LogPopulation"].quantile(tukey_q3_percentile)
+    q3 = df_pop["LogPopulation"].quantile(tukey_q1_percentile)
     iqr = q3 - q1
     lower = q1 - tukey_iqr_multiplier * iqr
     upper = q3 + tukey_iqr_multiplier * iqr
     outliers = df_pop[(df_pop["LogPopulation"] < lower) | (df_pop["LogPopulation"] > upper)]
     # TODO We should write this output in our report
-    print(f"___________Population outliers:___________\n {outliers}")
+    print(f"___________Population outliers count:___________\n{len(outliers)}")
 
     # d)
     df_pop = df_pop.drop_duplicates(subset="Country", keep="first")
-    df_pop = normalize_country_names(df_pop)
+    df_pop, mismatches_pop = normalize_country_names(df_pop)
 
-    # e)
+    # Set index
     df_pop = df_pop.set_index("Country")
 
-    return df_pop
+    return df_pop, mismatches_pop
 
 # Run cleaning
-df_gdp_clean = clean_gdp(df_gdp)
-df_pop_clean= clean_pop(df_pop)
+df_gdp_clean, mismatches_gdp = clean_gdp(df_gdp)
+df_pop_clean, mismatches_pop = clean_pop(df_pop)
 
-# Save cleaned data
+# Save cleaned data (optional)
 df_gdp_clean.to_csv("output/cleaned_gdp.csv")
 df_pop_clean.to_csv("output/cleaned_pop.csv")
+
+# Save mismatches for record
+all_mismatches = pd.concat([mismatches_gdp, mismatches_pop])
+all_mismatches.to_csv("output/name_mismatches.csv", index=False)
