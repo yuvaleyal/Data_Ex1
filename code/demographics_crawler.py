@@ -9,7 +9,12 @@ URL_PREFIX = "https://www.worldometers.info"
 COLS = ["Life Expectancy Both", "Life Expectancy Female", "Life Expectancy Male", "Urban Population Percentage", "Urban Population Absolute", "Population Density"]
 OUTPUT_FOLDER = "output"
 
-def get_country_links() -> list:
+def get_country_links() -> list[str]:
+    """returns a list of country links from the demographics page.
+
+    Returns:
+        list[str]: List of country URLs.
+    """
     response = requests.get(BASE_URL)
     soup = BeautifulSoup(response.text, 'html.parser')
     country_links = []
@@ -26,12 +31,29 @@ def get_country_links() -> list:
     return country_links
 
 def country_name(soup: BeautifulSoup) -> str:
+    """returns the country name from the soup object.
+
+    Args:
+        soup (BeautifulSoup): soup object of the page.
+
+    Returns:
+        str: Country name.
+    """
     name = soup.find('h1')
     if name:
         title = name.text.strip()
         return title.rsplit(' ', 1)[0] if title.lower().endswith('demographics') else title
 
 def life_expectancy(soup: BeautifulSoup, population: str) -> float:
+    """returns the life expectancy for a given population type (Male, Female or Both).
+
+    Args:
+        soup (BeautifulSoup): soup object of the page.
+        population (str): indicator for the type of life expectancy.
+
+    Returns:
+        float: Life expectancy.
+    """
     result = soup.find('div', string=re.compile(population, re.IGNORECASE))
     if result:
         parent = result.parent
@@ -41,6 +63,14 @@ def life_expectancy(soup: BeautifulSoup, population: str) -> float:
     return None
 
 def urban_stats(soup: BeautifulSoup) -> tuple[float, float]:
+    """extracts and return the urban population percentage and absolute number.
+
+    Args:
+        soup (BeautifulSoup): soup object of the page.
+
+    Returns:
+        tuple[float, float]: [urban population percentage, urban population absolute number]
+    """
     header = soup.find('h2', string=re.compile(r'Urban Population', re.IGNORECASE))
     if header:
         p = header.find_next_sibling('p')
@@ -53,6 +83,14 @@ def urban_stats(soup: BeautifulSoup) -> tuple[float, float]:
     return None, None
 
 def population_density(soup: BeautifulSoup) -> float:
+    """finds and returns the population density from the soup object.
+
+    Args:
+        soup (BeautifulSoup): soup object of the page.
+
+    Returns:
+        float: Population density.
+    """
     header = soup.find('h2', string=re.compile(r'Population Density', re.IGNORECASE))
     if header:
         p = header.find_next_sibling('p')
@@ -62,7 +100,15 @@ def population_density(soup: BeautifulSoup) -> float:
                 return float(m.group(1))
     return None
 
-def crwal_page(url: str):
+def crwal_page(url: str) -> dict:
+    """crawls a single country page and returns the data in a dictionary.
+
+    Args:
+        url (str): url to the page.
+
+    Returns:
+        dict: the data extracted.
+    """
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     data = {}
@@ -77,6 +123,11 @@ def crwal_page(url: str):
     return data
     
 def crawl_all_countries() -> pd.DataFrame:
+    """crawls all country pages and returns a DataFrame of the extracted data.
+
+    Returns:
+        pd.DataFrame: all the extracted data.
+    """
     country_links = get_country_links()
     data = []
     for link in country_links:
