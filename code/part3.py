@@ -1,16 +1,26 @@
 import pandas as pd
 import os
 
-OUTPUT_FOLDER = r"C:/Users/Yuval/Desktop/CS/thirdyear/secondsemester/Data/Ex1/Repo/Data_Ex1/output"
+# Load cleaned GDP and Population DataFrames
+df_gdp = pd.read_csv("../output/cleaned_gdp.csv", index_col="Country")
+df_pop = pd.read_csv("../output/cleaned_pop.csv", index_col="Country")
 
-def total_gdp(df_population: pd.DataFrame, df_gdp_per_capita: pd.DataFrame) -> pd.DataFrame:
-    df_gdp = pd.DataFrame(columns=df_population.columns)
-    for country in df_population['Country']:
-            df_gdp[country] = df_population[country] * df_gdp_per_capita[country]
-    return df_gdp
+# Ensure numeric types
+df_gdp["GDP_per_capita_PPP"] = pd.to_numeric(df_gdp["GDP_per_capita_PPP"],
+											 errors="coerce")
+df_pop["Population"] = pd.to_numeric(df_pop["Population"], errors="coerce")
 
-if __name__ == "__main__":
-    df_population = pd.read_csv(os.path.join(OUTPUT_FOLDER, r"population_2021.csv"))
-    df_gdp_per_capita = pd.read_csv(os.path.join(OUTPUT_FOLDER, r"gdp_per_capita.csv"))
-    df_gdp = total_gdp(df_population, df_gdp_per_capita)
-    df_gdp.to_csv('gdp.csv', index=False)
+# Inner join on Country
+df_combined = df_gdp.join(df_pop, how="inner")
+
+# Calculate Total GDP
+df_combined["TotalGDP"] = df_combined["GDP_per_capita_PPP"] * df_combined[
+	"Population"]
+
+# Optional: Save for validation
+os.makedirs("../output", exist_ok=True)
+df_combined[["GDP_per_capita_PPP", "Population", "TotalGDP"]].to_csv(
+	"../output/total_gdp_feature.csv")
+
+# Preview
+print(df_combined[["GDP_per_capita_PPP", "Population", "TotalGDP"]].head())
