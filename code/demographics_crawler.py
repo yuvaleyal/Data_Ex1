@@ -7,7 +7,7 @@ import os
 BASE_URL = "https://www.worldometers.info/demographics/"
 URL_PREFIX = "https://www.worldometers.info"
 COLS = ["Life Expectancy Both", "Life Expectancy Female", "Life Expectancy Male", "Urban Population Percentage", "Urban Population Absolute", "Population Density"]
-OUTPUT_FOLDER = "output"
+OUTPUT_FOLDER = "../output"
 
 def get_country_links() -> list:
     response = requests.get(BASE_URL)
