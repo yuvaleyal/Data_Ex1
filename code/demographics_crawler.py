@@ -3,11 +3,12 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import re
 import os
+from pathlib import Path
 
 BASE_URL = "https://www.worldometers.info/demographics/"
 URL_PREFIX = "https://www.worldometers.info"
 COLS = ["Life Expectancy Both", "Life Expectancy Female", "Life Expectancy Male", "Urban Population Percentage", "Urban Population Absolute", "Population Density"]
-OUTPUT_FOLDER = "../output"
+OUTPUT_FOLDER = "output"
 
 def get_country_links() -> list[str]:
     """returns a list of country links from the demographics page.
@@ -136,4 +137,10 @@ def crawl_all_countries() -> pd.DataFrame:
 
 if __name__ == "__main__":
     data = crawl_all_countries()
-    data.to_csv(os.path.join(OUTPUT_FOLDER, 'demographics_data.csv'), index=False)
+    data.set_index('Country', inplace=True)
+    data.to_csv(Path(__file__).parent.parent/OUTPUT_FOLDER/"demographics_data.csv", index=True)
+    print(data.head(10))
+    data.head(10).to_csv(Path(__file__).parent.parent/OUTPUT_FOLDER/"demographics_before_sort.csv", index=True)
+    data.sort_index(inplace=True)
+    print(data.head(10))
+    data.head(10).to_csv(Path(__file__).parent.parent/OUTPUT_FOLDER/"demographics_after_sort.csv", index=True)
